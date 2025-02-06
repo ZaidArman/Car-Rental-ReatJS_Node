@@ -7,9 +7,11 @@ import axios from "axios";
 import { AuthContext, useAuth } from "../context/auth/auth.provider";
 import { base_url } from "../config/config";
 import { LoadingContext } from "../context/loading/loading.provider";
+import { toast } from "react-toastify"; // Import Toastify
 
 const Uploadvehicle = () => {
   const [vehicles, setVehicles] = useState([]);
+  console.log(vehicles, 'Vehicle')
   const [loading, setLoading] = useState();
 
   const [formData, setFormData] = useState({
@@ -26,6 +28,7 @@ const Uploadvehicle = () => {
   const [uploadVehicleStatus, setUploadVehicleStatus] = useState(null);
   const [uploadVehicleError, setUploadVehicleError] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
+  const [brands, setBrands] = useState([]);
 
   const { user } = useAuth();
 
@@ -46,76 +49,125 @@ const Uploadvehicle = () => {
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.brand) errors.brand = "Car brand is required.";
+  
+    if (!formData.car_brand_id) errors.car_brand_id = "Car brand is required.";
     if (!formData.model) errors.model = "Car model is required.";
     if (!formData.seats) errors.seats = "Number of seats is required.";
-    if (!formData.manual) errors.manual = "Transmission type is required.";
+    if (!formData.manual || formData.manual === "") errors.manual = "Transmission type is required.";
     if (!formData.rent) errors.rent = "Rent is required.";
     if (!formData.location) errors.location = "Location is required.";
-    if (!formData.licensePlate)
-      errors.licensePlate = "License plate number is required.";
+    if (!formData.licensePlate) errors.licensePlate = "License plate number is required.";
     if (!formData.image) errors.image = "Car image is required.";
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+  
+    setValidationErrors(errors); // ✅ Update state before returning
+  
+    console.log("Validation Errors:", errors); // ✅ Debugging log
+  
+    return Object.keys(errors).length === 0; // ✅ Return validation result
   };
+  
 
   const handleSubmit = async () => {
+    console.log("Submit clicked");
+  
     if (!validateForm()) {
+      console.log("Form validation failed, stopping submission.");
       return;
     }
-
+  
     setLoading(true);
     setUploadVehicleStatus(null);
     setUploadVehicleError(null);
-
+  
     const formDataToSend = new FormData();
-    formDataToSend.append("carBrand", formData.brand);
-    formDataToSend.append("carModel", formData.model);
-    formDataToSend.append("noOfSeats", formData.seats);
-    formDataToSend.append("transmission", formData.manual);
-    formDataToSend.append("rentPerDay", formData.rent);
-    formDataToSend.append("address", formData.location);
-    formDataToSend.append("licensePlate", formData.licensePlate);
-    formDataToSend.append("images", formData.image);
-    formDataToSend.append("rentalId", user?._id);
-
+    formDataToSend.append("car_brand", formData.car_brand_id); // Matches Django model
+    formDataToSend.append("car_model", formData.model);
+    formDataToSend.append("seats", formData.seats);
+    formDataToSend.append("type", formData.manual); // Correct mapping for transmission
+    formDataToSend.append("price_per_day", formData.rent);
+    formDataToSend.append("location", formData.location);
+    formDataToSend.append("licence_plate_no", formData.licensePlate);
+    formDataToSend.append("image", formData.image);
+  
     try {
-      const { data } = await axios.post(
-        `${base_url}/vehicle/rental/uploadvehicle`,
-        formDataToSend
-      );
-      setVehicles([...vehicles, data?.NewVehicle]);
+      const { data } = await axios.post(`${base_url}/booking/cars/`, formDataToSend, {
+        headers: {
+          Authorization: `Token ${localStorage.getItem("token")}`, // Ensure authentication
+          "Content-Type": "multipart/form-data",
+        },
+      });
+  
+      setVehicles([...vehicles, data]); // Append new car data to state
       setUploadVehicleStatus("success");
+      toast.success("Vehicle uploaded successfully!");
     } catch (error) {
       console.error("Error uploading vehicle:", error.message);
       setUploadVehicleStatus("error");
       setUploadVehicleError("Failed to upload vehicle");
+      toast.error("Failed to upload vehicle.");
     } finally {
       setLoading(false);
     }
   };
+  
 
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
         setLoading(true);
-        const response = await axios.post(
-          `${base_url}/vehicle/rental/getvehicle`,
-          { rentalId: user?._id }
-        );
-
-        setVehicles(response.data?.vehicles);
+        const response = await axios.get(`${base_url}/booking/cars/`, {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`,
+          },
+        });
+        setVehicles(response.data); // Update state with fetched vehicles
       } catch (error) {
         console.error("Error fetching vehicles:", error.message);
       } finally {
         setLoading(false);
       }
     };
-    if (user) {
-      fetchVehicles();
-    }
-  }, [user]);
+  
+    fetchVehicles(); // Fetch data when component mounts
+  }, []);
+
+
+  
+
+  // useEffect(() => {
+  //   const fetchVehicles = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const response = await axios.post(
+  //         `${base_url}/booking/cars/`,
+  //         { rentalId: user?._id }
+  //       );
+
+  //       setVehicles(response.data?.vehicles);
+  //     } catch (error) {
+  //       console.error("Error fetching vehicles:", error.message);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   if (user) {
+  //     fetchVehicles();
+  //   }
+  // }, [user]);
+
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const { data } = await axios.get(`${base_url}/booking/brands/`); // Endpoint to get brands
+        setBrands(data);
+      } catch (error) {
+        console.error("Error fetching brands:", error.message);
+      }
+    };
+  
+    fetchBrands();
+  }, []);
 
   const [bookingRequests, setBookingRequests] = useState([]);
   const [error, setError] = useState(null);
@@ -229,7 +281,7 @@ const Uploadvehicle = () => {
 
             <p className="mb-6">Upload information about your vehicle.</p>
             <form>
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <input
                   type="text"
                   name="brand"
@@ -240,6 +292,24 @@ const Uploadvehicle = () => {
                 />
                 {validationErrors.brand && (
                   <div className="text-red-600">{validationErrors.brand}</div>
+                )}
+              </div> */}
+              <div className="mb-4">
+                <select
+                  name="car_brand_id"
+                  value={formData.car_brand_id}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded-lg"
+                >
+                  <option value="">Select Brand</option>
+                  {brands.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.brand_name}
+                    </option>
+                  ))}
+                </select>
+                {validationErrors.car_brand_id && (
+                  <div className="text-red-600">{validationErrors.car_brand_id}</div>
                 )}
               </div>
               <div className="mb-4">
@@ -269,18 +339,21 @@ const Uploadvehicle = () => {
                 )}
               </div>
               <div className="mb-4">
-                <input
-                  type="text"
-                  name="manual"
-                  placeholder="Manual/Auto"
-                  value={formData.manual}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-lg"
-                />
-                {validationErrors.manual && (
-                  <div className="text-red-600">{validationErrors.manual}</div>
-                )}
-              </div>
+              <select
+                name="manual"
+                value={formData.manual}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-lg"
+              >
+                <option value="">Select Transmission</option>
+                <option value="M">Manual</option>
+                <option value="A">Automatic</option>
+                <option value="H">Hybrid</option>
+              </select>
+              {validationErrors.manual && (
+                <div className="text-red-600">{validationErrors.manual}</div>
+              )}
+            </div>
               <div className="mb-4">
                 <input
                   type="text"
@@ -379,37 +452,48 @@ const Uploadvehicle = () => {
             vehicles?.length > 0 &&
             vehicles.map((item) => (
               <div
-                key={item?._id}
+                key={item?.id}
                 className="flex items-center bg-red-500 text-white p-4 rounded-lg mb-4"
               >
+              {/* ✅ Ensure correct image display */}
                 <img
-                  src={item?.avatar}
+                  src={item?.image} // Ensure correct image path
                   alt="Car"
                   className="w-32 h-auto rounded-lg mr-4"
                 />
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.carBrand}</h3>
+                    {/* ✅ Display car brand name correctly */}
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">{item?.car_brand?.brand_name}</h3>
+                    </div>
+                  <div className="flex-1">
+                  <h3 className="text-xl font-bold">{item?.car_model}</h3>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.carModel}</h3>
+                  <h3 className="text-xl font-bold">{item?.seats}</h3>
                 </div>
+                {/* ✅ Correct type display */}
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.noOfSeats}</h3>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.transmission}</h3>
+                  <h3 className="text-xl font-bold">
+                    {item?.type === "M"
+                      ? "Manual"
+                      : item?.type === "A"
+                      ? "Auto"
+                      : item?.type === "H"
+                      ? "Hybrid"
+                      : "Unknown"}
+                  </h3>
                 </div>
 
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.address}</h3>
+                  <h3 className="text-xl font-bold">{item?.location}</h3>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.licensePlate}</h3>
+                  <h3 className="text-xl font-bold">{item?.licence_plate_no}</h3>
                 </div>
 
                 <div className="text-right">
                   <p className="text-xl font-bold">
-                    Per Day Rs/- {item?.rentPerDay}
+                    Per Day Rs/- {item?.price_per_day}
                   </p>
 
                   {/* <span className="bg-white text-red-500 px-2 py-1 rounded-full mt-2 inline-block">
@@ -419,11 +503,18 @@ const Uploadvehicle = () => {
                         }       
                   </span> */}
 
-                  <span
+                  {/* <span
                     className="bg-white text-red-500 px-2 py-1 rounded-full mt-2 inline-block cursor-pointer"
-                    onClick={() => toggleStatus(item._id, item.status)}>
+                    onClick={() => toggleStatus(item.id, item.status)}>
                     {item.status === "disable" ? "Not Available" : item.status}
-                  </span>
+                  </span> */}
+                   {/* ✅ Show Car Status (Default to "Active" if not available) */}
+                <span
+                  className="bg-white text-red-500 px-2 py-1 rounded-full mt-2 inline-block cursor-pointer"
+                  onClick={() => toggleStatus(item.id, item.status)}
+                >
+                  {item?.status ? item.status : "Active"} {/* ✅ Default to "Active" */}
+                </span>
                 </div>
 
                 <span onClick={() => handleRemove(item._id)}>

@@ -177,11 +177,13 @@ const Rental = () => {
   const [statusFilter, setStatusFilter] = useState("");
 
   const { user } = useAuth();
+
+  console.log(user, 'useruseruseruseruseruser')
   const navigation = useNavigate();
 
   const Links = [
     { to: "/Profile", label: "Profile" },
-    user?.isRental &&
+    user?.roles == 'Rental' &&
     { to: "/Uploadvehicle", label: "Upload Vehicle" },
   ];
 
