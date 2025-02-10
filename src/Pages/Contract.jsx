@@ -8,32 +8,38 @@ const Contract = () => {
   const [loading, setLoading] = useState(false);
   const location = useLocation();
 
+  console.log(additionalData, 'additionalData')
+
   const searchParams = new URLSearchParams(location.search);
 
   // Accessing the query parameters
   const bookingId = searchParams.get("bookingId");
 
+  console.log(bookingId, 'BOOKing ID')
+
   useEffect(() => {
-    const fetchAdditionalData = async () => {
+    const fetchBookingDetails = async () => {
       try {
         setLoading(true);
-        // Example: Fetch additional data based on booking ID
         const response = await axios.get(
-          `${base_url}/booking/contract/${bookingId}`
+          `${base_url}/booking/booking/${bookingId}`,  // ✅ Correct API path
+          {
+            headers: {
+              Authorization: `Token ${localStorage.getItem("token")}`,
+            },
+          }
         );
-        console.log(response.data, "data");
-        setAdditionalData(response.data.contract);
+        console.log("Booking Data:", response.data);
+        setAdditionalData(response.data); // ✅ Store booking details
       } catch (error) {
-        console.error("Error fetching additional data:", error.message);
-        // Handle the error, e.g., display an error message to the user
+        console.error("Error fetching booking details:", error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    // Call the function if additional data fetching is required
-    fetchAdditionalData();
-  }, [bookingId]); // Dependency on bookingData ensures the effect is re-run when bookingData changes
+    if (bookingId) fetchBookingDetails();
+  }, [bookingId]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-200 p-4">
@@ -46,32 +52,25 @@ const Contract = () => {
         <div className="text-center space-y-2">
           <p>
             Car model:{" "}
-            <span className="font-semibold">{additionalData?.carModel}</span>
+            <span className="font-semibold">{additionalData?.car_details?.car_model || "N/A"}</span>
           </p>
           <p>
             Brand:{" "}
-            <span className="font-semibold">{additionalData?.carBrand}</span>
+            <span className="font-semibold">{additionalData?.car_details?.car_brand?.brand_name || "N/A"}</span>
           </p>
           <p>
             No of Seats:{" "}
-            <span className="font-semibold">{additionalData?.noOfSeats}</span>
+            <span className="font-semibold">{additionalData?.car_details?.seats || "N/A"}</span>
           </p>
-          <p>
-            Auto/Manual:{" "}
-            <span className="font-semibold">
-              {additionalData?.transmission}
-            </span>
-          </p>
-          <p>
-            Plate Number:{" "}
-            <span className="font-semibold">
-              {additionalData?.licensePlate}
-            </span>
-          </p>
-          <p>
-            Total Amount:{" "}
-            <span className="font-semibold">{additionalData?.totalRent}</span>
-          </p>
+
+         <p> Auto/Manual: <span className="font-semibold">
+            {additionalData?.car_details?.type === "M" ? "Manual" :
+             additionalData?.car_details?.type === "A" ? "Auto" :
+             additionalData?.car_details?.type === "H" ? "Hybrid" : "N/A"}
+          </span></p>
+          <p>Plate Number: <span className="font-semibold">{additionalData?.car_details?.licence_plate_no || "N/A"}</span></p>
+          <p>Total Amount: <span className="font-semibold">{additionalData?.total_price || "N/A"}</span></p>
+
 
           <p className="mt-6 text-center">
             The customer is responsible for any kind of damage to the vehicle

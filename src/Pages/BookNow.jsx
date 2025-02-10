@@ -3,6 +3,7 @@ import axios from "axios";
 import { base_url } from "../config/config";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/auth/auth.provider";
+import { toast } from "react-toastify"; // Import Toastify
 
 const BookNow = () => {
   const location = useLocation();
@@ -14,16 +15,16 @@ const BookNow = () => {
   const carId = searchParams.get("carId");
  
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    customer_first_name: "",
+    customer_last_name: "",
     address: "",
-    contactNo: "",
+    contact_number: "",
     email: "",
     cnic: "",
-    customerId: user?._id,
-    startDate: "",
-    endDate: "",
-    vehicleId: carId,
+    customerId: user?.id,
+    from_date: "",
+    to_date: "",
+    car: carId,
   });
 
   const handleChange = (e) => {
@@ -41,32 +42,42 @@ const handleSubmit = async (e) => {
     setError("CNIC must be 13 characters long.");
     return;
   }
-  if (formData.contactNo.length !== 11) {
+  if (formData.contact_number.length !== 11) {
     setError("Contact number must be 11 characters long.");
     return;
   }
   
   // Validate dates
-  if (!isValidDateRange(formData.startDate, formData.endDate)) {
+  if (!isValidDateRange(formData.from_date, formData.to_date)) {
     setError("End date must be after start date and both must be in format 'YYYY-MM-DD'");
     return;
   }
 
   try {
     const res = await axios.post(
-      `${base_url}/booking/customer/bookNow`,
-      formData
+      `${base_url}/booking/booking/`, // API Endpoint
+      formData, // Data to send
+      {
+        headers: {
+          Authorization: `Token ${localStorage.getItem("token")}`, // ✅ Correct Placement
+          "Content-Type": "application/json", // ✅ Adjust content type if sending JSON
+        },
+      }
     );
+    
     console.log(res.data);
+    toast.success("Booking successful! 🚀");
 
     // Construct the query string from the received parameters
     const queryParams = new URLSearchParams();
-    queryParams.set("bookingId", res.data.newBooking._id);
+    queryParams.set("bookingId", res.data.id);
 
     // Navigate to the new URL with the query parameters
     navigation(`/contract?${queryParams.toString()}`);
   } catch (error) {
+    const errorMessage = error?.response?.data?.message || "An error occurred while booking.";
     setError(error?.response?.data?.message || "An error occurred while booking.");
+    toast.error(errorMessage);
     console.error("Error adding new booking:", error?.message);
   }
 };
@@ -99,8 +110,8 @@ const isValidDateRange = (startDate, endDate) => {
           <div className="mb-4">
             <input
               type="text"
-              name="firstName"
-              value={formData.firstName}
+              name="customer_first_name"
+              value={formData.customer_first_name}
               onChange={handleChange}
               placeholder="First Name"
               className="w-full p-2 border rounded focus:outline-none focus:border-blue-500"
@@ -109,8 +120,8 @@ const isValidDateRange = (startDate, endDate) => {
           <div className="mb-4">
             <input
               type="text"
-              name="lastName"
-              value={formData.lastName}
+              name="customer_last_name"
+              value={formData.customer_last_name}
               onChange={handleChange}
               placeholder="Last Name"
               className="w-full p-2 border rounded focus:outline-none focus:border-blue-500"
@@ -129,8 +140,8 @@ const isValidDateRange = (startDate, endDate) => {
           <div className="mb-4">
             <input
               type="text"
-              name="contactNo"
-              value={formData.contactNo}
+              name="contact_number"
+              value={formData.contact_number}
               onChange={handleChange}
               minLength={11}
               placeholder="Contact No."
@@ -162,8 +173,8 @@ const isValidDateRange = (startDate, endDate) => {
             <span>From: </span>
             <input
               type="text"
-              name="startDate"
-              value={formData.startDate}
+              name="from_date"
+              value={formData.from_date}
               onChange={handleChange}
               placeholder="(YYYY-MM-DD)"
               className="w-2/5 p-2 border rounded focus:outline-none focus:border-blue-500"
@@ -171,8 +182,8 @@ const isValidDateRange = (startDate, endDate) => {
             <span> To: </span>
             <input
               type="text"
-              name="endDate"
-              value={formData.endDate}
+              name="to_date"
+              value={formData.to_date}
               onChange={handleChange}
               placeholder="(YYYY-MM-DD)"
               className="w-2/5 p-2 border rounded focus:outline-none focus:border-blue-500"

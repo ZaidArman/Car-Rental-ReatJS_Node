@@ -15,7 +15,7 @@ const Uploadvehicle = () => {
   const [loading, setLoading] = useState();
 
   const [formData, setFormData] = useState({
-    brand: "",
+    car_brand_id: "",
     model: "",
     seats: "",
     manual: "",
@@ -170,23 +170,37 @@ const Uploadvehicle = () => {
   }, []);
 
   const [bookingRequests, setBookingRequests] = useState([]);
+  console.log(bookingRequests, "Booking")
   const [error, setError] = useState(null);
 
-  const fetchBookingRequests = async () => {
-    try {
-      const { data } = await axios.post(`${base_url}/booking/bookings`, {
-        rentalId: user?._id,
-      });
-      const { declineVehicles, pendingVehicles, rentedVehicles } = data;
-      setBookingRequests(pendingVehicles);
-    } catch (error) {
-      setError("Failed to fetch booking requests");
-    }
-  };
-
   useEffect(() => {
+    const fetchBookingRequests = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${base_url}/booking/booking/`, {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`, // ✅ Ensure authentication
+          },
+        });
+
+        console.log("Fetched Bookings:", response.data);
+        const pendingBookings = response.data.filter(booking => booking.status === "P");
+
+        setBookingRequests(pendingBookings);
+      } catch (error) {
+        console.error("Error fetching booking requests:", error.message);
+        setError("Failed to fetch booking requests");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchBookingRequests();
-  }, [user]);
+  }, []);
+
+  // useEffect(() => {
+  //   fetchBookingRequests();
+  // }, [user]);
 
   const determineStatus = (rentalResponse) => {
     if (rentalResponse === "approved") {
@@ -198,56 +212,127 @@ const Uploadvehicle = () => {
     }
   };
 
-  const handleAccept = async (bookingId) => {
+  // const handleAccept = async (bookingId) => {
+  //   try {
+  //     const response = await axios.put(
+  //       `${base_url}/booking/booking/${bookingId}/`
+  //     );
+  //     if (response.status === 200) {
+  //       const updatedBookingRequests = bookingRequests.filter(
+  //         (booking) => booking._id !== bookingId
+  //       );
+  //       setBookingRequests(updatedBookingRequests);
+  //       console.log(bookingRequests, "booking requests");
+  //     }
+  //   } catch (error) {
+  //     setError("Failed to accept booking request");
+  //   }
+  // };
+
+  // const handleDecline = async (bookingId) => {
+  //   try {
+  //     const response = await axios.put(
+  //       `${base_url}/booking/booking/${bookingId}/`
+  //     );
+  //     if (response.status === 200) {
+  //       const updatedBookingRequests = bookingRequests.filter(
+  //         (booking) => booking.id !== bookingId
+  //       );
+  //       setBookingRequests(updatedBookingRequests);
+  //     }
+  //   } catch (error) {
+  //     setError("Failed to decline booking request");
+  //   }
+  // };
+
+  const handleUpdateStatus = async (bookingId, newStatus) => {
     try {
       const response = await axios.put(
-        `${base_url}/booking/updateStatus/${bookingId}/accept`
+        `${base_url}/booking/booking/${bookingId}/`,
+        { status: newStatus }, // Send the updated status
+        {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`, // Ensure authentication
+            "Content-Type": "application/json",
+          },
+        }
       );
+  
       if (response.status === 200) {
-        const updatedBookingRequests = bookingRequests.filter(
-          (booking) => booking._id !== bookingId
+        // ✅ Update state to remove the processed booking
+        setBookingRequests((prevRequests) =>
+          prevRequests.filter((booking) => booking.id !== bookingId)
         );
-        setBookingRequests(updatedBookingRequests);
-        console.log(bookingRequests, "booking requests");
+  
+        // ✅ Show success toast
+        toast.success(
+          `Booking ${newStatus === "A" ? "approved" : "declined"} successfully!`
+        );
       }
     } catch (error) {
-      setError("Failed to accept booking request");
+      console.error("Error updating booking status:", error.message);
+  
+      // ❌ Show error toast
+      toast.error(`Failed to update booking status: ${error.message}`);
+    }
+  };
+  
+  // Call these functions on button click
+  const handleAccept = (bookingId) => handleUpdateStatus(bookingId, "A");
+  const handleDecline = (bookingId) => handleUpdateStatus(bookingId, "C");
+
+  // const handleRemove = async (id) => {
+  //   try {
+  //     const response = await axios.put(`${base_url}/vehicle/status/${id}`);
+  //     if (response.status === 200) {
+  //       console.log("Vehicle status updated to not available");
+  //       const updatedVehicles = vehicles.map((vehicle) => {
+  //         if (vehicle._id === id) {
+  //           return { ...vehicle, status: "disable" };
+  //         }
+  //         return vehicle;
+  //       });
+  //       setVehicles(updatedVehicles);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error updating vehicle status:", error.message);
+  //   }
+  // };
+
+  const handleRemove = async (carId) => {
+    try {
+      const response = await axios.delete(`${base_url}/booking/cars/${carId}`, {
+        headers: {
+          Authorization: `Token ${localStorage.getItem("token")}`, // Ensure authentication
+        },
+      });
+  
+      if (response.status === 204) {
+        // Remove deleted car from the state
+        setVehicles((prevVehicles) => prevVehicles.filter((car) => car.id !== carId));
+        toast.success("Vehicle deleted successfully!");
+      } else {
+        toast.error("Failed to delete the vehicle.");
+      }
+    } catch (error) {
+      console.error("Error deleting vehicle:", error.message);
+      toast.error("An error occurred while deleting the vehicle.");
     }
   };
 
-  const handleDecline = async (bookingId) => {
-    try {
-      const response = await axios.put(
-        `${base_url}/booking/updateStatus/${bookingId}/decline`
-      );
-      if (response.status === 200) {
-        const updatedBookingRequests = bookingRequests.filter(
-          (booking) => booking._id !== bookingId
-        );
-        setBookingRequests(updatedBookingRequests);
-      }
-    } catch (error) {
-      setError("Failed to decline booking request");
+  const getCarType = (type) => {
+    switch (type) {
+      case "M":
+        return "Manual";
+      case "A":
+        return "Auto";
+      case "H":
+        return "Hybrid";
+      default:
+        return "Unknown";
     }
   };
-
-  const handleRemove = async (id) => {
-    try {
-      const response = await axios.put(`${base_url}/vehicle/status/${id}`);
-      if (response.status === 200) {
-        console.log("Vehicle status updated to not available");
-        const updatedVehicles = vehicles.map((vehicle) => {
-          if (vehicle._id === id) {
-            return { ...vehicle, status: "disable" };
-          }
-          return vehicle;
-        });
-        setVehicles(updatedVehicles);
-      }
-    } catch (error) {
-      console.error("Error updating vehicle status:", error.message);
-    }
-  };
+  
 
   
     const toggleStatus = async (vehicleId, currentStatus) => {
@@ -305,6 +390,7 @@ const Uploadvehicle = () => {
                   {brands.map((brand) => (
                     <option key={brand.id} value={brand.id}>
                       {brand.brand_name}
+                      
                     </option>
                   ))}
                 </select>
@@ -517,7 +603,7 @@ const Uploadvehicle = () => {
                 </span>
                 </div>
 
-                <span onClick={() => handleRemove(item._id)}>
+                <span onClick={() => handleRemove(item.id)}>
                   <svg
                     className="w-6 h-6 text-gray-800 dark:text-white"
                     aria-hidden="true"
@@ -553,31 +639,31 @@ const Uploadvehicle = () => {
               <div className="flex-row items-center bg-blue-500 text-white p-4 rounded-lg mb-4">
                 <div key={booking._id} className="flex items-center">
                   <img
-                    src={booking?.vehicleId?.avatar}
+                    src={booking?.car_details?.image}
                     alt={booking?.vehicleId?.model}
                     className="w-32 h-auto rounded-lg mr-4"
                   />
                   <div className="flex-grow">
                     <p className="text-xl font-bold">
-                      {`${booking?.vehicleId?.carBrand} ${booking?.vehicleId?.carModel} ${booking?.vehicleId?.noOfSeats}  ${booking?.vehicleId?.address}  ${booking?.vehicleId?.licensePlate}  ${booking?.vehicleId?.transmission}`}
+                      {`${booking?.car_details?.car_brand?.brand_name} ${booking?.car_details?.car_model} ${booking?.car_details?.seats}  ${booking?.address}  ${booking?.car_details?.licence_plate_no}  ${getCarType(booking?.car_details?.type)}`}
                     </p>
                     <p className="text-xl font-bold">
-                      Per Day Rs/- {booking?.vehicleId?.rentPerDay}
+                      Per Day Rs/- {booking?.car_details?.price_per_day}
                     </p>
                     <p className="text-lg">
-                      Customer Email: {`${booking?.customerId?.email}`}
+                      Customer Email: {`${booking?.email}`}
                     </p>
                   </div>
                   <div className="flex-shrink-0 flex space-x-2">
                     <button
                       className="bg-red-500 px-2 py-1 rounded-full"
-                      onClick={() => handleDecline(booking?._id)}
+                      onClick={() => handleDecline(booking?.id)}
                     >
                       Decline
                     </button>
                     <button
                       className="bg-green-500 px-2 py-1 rounded-full"
-                      onClick={() => handleAccept(booking._id)}
+                      onClick={() => handleAccept(booking?.id)}
                     >
                       Accept
                     </button>
