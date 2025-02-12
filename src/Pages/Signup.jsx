@@ -1,18 +1,21 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/auth/auth.provider";
+import { toast } from "react-toastify"; // Import Toastify
 
 const SignUpForm = () => {
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    first_name: "",  // Ensure this matches Django
+    last_name: "",   // Ensure this matches Django
+    cnic: "",        // Add this field
     address: "",
-    contact: "",
+    phone_number: "",  // Fix field name from 'contact' to 'phone_number'
     email: "",
     password: "",
-    role: "",
+    roles: "",
     image: null,
   });
+  
   const [errors, setErrors] = useState({});
   const navigation = useNavigate();
   const [singUpSuccess, setSignUpSuccess] = useState("");
@@ -42,42 +45,64 @@ const SignUpForm = () => {
     });
   };
 
+  // const validateForm = () => {
+  //   const newErrors = {};
+  //   Object.keys(formData).forEach((key) => {
+  //     if (!formData[key] && key !== "image") {
+  //       newErrors[key] = "This field is required.";
+  //     }
+  //   });
+  //   setErrors(newErrors);
+  //   return Object.keys(newErrors).length === 0;
+  // };
+
   const validateForm = () => {
     const newErrors = {};
-    Object.keys(formData).forEach((key) => {
-      if (!formData[key] && key !== "image") {
+    const requiredFields = ["first_name", "last_name", "cnic", "address", "phone_number", "email", "password"];
+  
+    requiredFields.forEach((key) => {
+      if (!formData[key]) {
         newErrors[key] = "This field is required.";
       }
     });
+  
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  
 
   const onSuccess = (data) => {
+    toast.success("Signup successful! 🎉");
     setSignUpSuccess("SignUp Successfull");
     navigation("/login");
   };
 
   const onFailure = (err) => {
     setErrorSignUp(err?.response?.data?.message || "an error occured");
+    toast.error(`${key}: ${value[0]}`);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-
+  
     const formDataToSend = new FormData();
-    formDataToSend.append("firstName", formData.firstName);
-    formDataToSend.append("lastName", formData.lastName);
+    formDataToSend.append("first_name", formData.first_name); // Fix field name
+    formDataToSend.append("last_name", formData.last_name);   // Fix field name
+    formDataToSend.append("cnic", formData.cnic);             // Add CNIC field
     formDataToSend.append("address", formData.address);
-    formDataToSend.append("contact", formData.contact);
+    formDataToSend.append("phone_number", formData.phone_number); // Fix field name
     formDataToSend.append("email", formData.email);
-    formDataToSend.append("location", formData.location);
     formDataToSend.append("password", formData.password);
-    formDataToSend.append("images", formData.image);
-    formDataToSend.append("role", formData.role);
+    formDataToSend.append("roles", formData.roles);
+    
+    if (formData.image) {
+      formDataToSend.append("image", formData.image);
+    }
+  
     await signup(formDataToSend, onSuccess, onFailure);
   };
+  
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -122,28 +147,42 @@ const SignUpForm = () => {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <input
               type="text"
-              name="firstName"
+              name="first_name"
               placeholder="First Name"
-              value={formData.firstName}
+              value={formData.first_name}
               onChange={handleChange}
               className="p-2 border border-gray-300 rounded"
             />
-            {errors.firstName && (
-              <p className="text-red-500">{errors.firstName}</p>
+            {errors.first_name && (
+              <p className="text-red-500">{errors.first_name}</p>
             )}
 
             <input
               type="text"
-              name="lastName"
+              name="last_name"
               placeholder="Last Name"
-              value={formData.lastName}
+              value={formData.last_name}
               onChange={handleChange}
               className="p-2 border border-gray-300 rounded"
             />
-            {errors.lastName && (
-              <p className="text-red-500">{errors.lastName}</p>
+            {errors.last_name && (
+              <p className="text-red-500">{errors.last_name}</p>
             )}
           </div>
+
+          <div className="mb-4">
+            <input
+              type="text"
+              name="cnic"  // New field for CNIC
+              placeholder="CNIC"
+              value={formData.cnic}
+              onChange={handleChange}
+              className="w-full p-2 border border-gray-300 rounded"
+            />
+            {errors.cnic && <p className="text-red-500">{errors.cnic}</p>}
+          </div>
+
+
           <div className="mb-4">
             <input
               type="text"
@@ -158,13 +197,13 @@ const SignUpForm = () => {
           <div className="mb-4">
             <input
               type="text"
-              name="contact"
+              name="phone_number"
               placeholder="Contact No."
-              value={formData.contact}
+              value={formData.phone_number}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded"
             />
-            {errors.contact && <p className="text-red-500">{errors.contact}</p>}
+            {errors.phone_number && <p className="text-red-500">{errors.phone_number}</p>}
           </div>
           <div className="mb-4">
             <input
@@ -202,8 +241,8 @@ const SignUpForm = () => {
             onClick={() =>
               handleChange({
                 target: {
-                  name: "role",
-                  value: "customer",
+                  name: "roles",
+                  value: "Customer",
                 },
               })
             }
@@ -216,8 +255,8 @@ const SignUpForm = () => {
             onClick={() =>
               handleChange({
                 target: {
-                  name: "role",
-                  value: "rental",
+                  name: "roles",
+                  value: "Rental",
                 },
               })
             }

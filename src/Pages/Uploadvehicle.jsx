@@ -7,13 +7,15 @@ import axios from "axios";
 import { AuthContext, useAuth } from "../context/auth/auth.provider";
 import { base_url } from "../config/config";
 import { LoadingContext } from "../context/loading/loading.provider";
+import { toast } from "react-toastify"; // Import Toastify
 
 const Uploadvehicle = () => {
   const [vehicles, setVehicles] = useState([]);
+  console.log(vehicles, 'Vehicle')
   const [loading, setLoading] = useState();
 
   const [formData, setFormData] = useState({
-    brand: "",
+    car_brand_id: "",
     model: "",
     seats: "",
     manual: "",
@@ -26,6 +28,7 @@ const Uploadvehicle = () => {
   const [uploadVehicleStatus, setUploadVehicleStatus] = useState(null);
   const [uploadVehicleError, setUploadVehicleError] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
+  const [brands, setBrands] = useState([]);
 
   const { user } = useAuth();
 
@@ -46,95 +49,158 @@ const Uploadvehicle = () => {
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.brand) errors.brand = "Car brand is required.";
+  
+    if (!formData.car_brand_id) errors.car_brand_id = "Car brand is required.";
     if (!formData.model) errors.model = "Car model is required.";
     if (!formData.seats) errors.seats = "Number of seats is required.";
-    if (!formData.manual) errors.manual = "Transmission type is required.";
+    if (!formData.manual || formData.manual === "") errors.manual = "Transmission type is required.";
     if (!formData.rent) errors.rent = "Rent is required.";
     if (!formData.location) errors.location = "Location is required.";
-    if (!formData.licensePlate)
-      errors.licensePlate = "License plate number is required.";
+    if (!formData.licensePlate) errors.licensePlate = "License plate number is required.";
     if (!formData.image) errors.image = "Car image is required.";
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+  
+    setValidationErrors(errors); // ✅ Update state before returning
+  
+    console.log("Validation Errors:", errors); // ✅ Debugging log
+  
+    return Object.keys(errors).length === 0; // ✅ Return validation result
   };
+  
 
   const handleSubmit = async () => {
+    console.log("Submit clicked");
+  
     if (!validateForm()) {
+      console.log("Form validation failed, stopping submission.");
       return;
     }
-
+  
     setLoading(true);
     setUploadVehicleStatus(null);
     setUploadVehicleError(null);
-
+  
     const formDataToSend = new FormData();
-    formDataToSend.append("carBrand", formData.brand);
-    formDataToSend.append("carModel", formData.model);
-    formDataToSend.append("noOfSeats", formData.seats);
-    formDataToSend.append("transmission", formData.manual);
-    formDataToSend.append("rentPerDay", formData.rent);
-    formDataToSend.append("address", formData.location);
-    formDataToSend.append("licensePlate", formData.licensePlate);
-    formDataToSend.append("images", formData.image);
-    formDataToSend.append("rentalId", user?._id);
-
+    formDataToSend.append("car_brand", formData.car_brand_id); // Matches Django model
+    formDataToSend.append("car_model", formData.model);
+    formDataToSend.append("seats", formData.seats);
+    formDataToSend.append("type", formData.manual); // Correct mapping for transmission
+    formDataToSend.append("price_per_day", formData.rent);
+    formDataToSend.append("location", formData.location);
+    formDataToSend.append("licence_plate_no", formData.licensePlate);
+    formDataToSend.append("image", formData.image);
+  
     try {
-      const { data } = await axios.post(
-        `${base_url}/vehicle/rental/uploadvehicle`,
-        formDataToSend
-      );
-      setVehicles([...vehicles, data?.NewVehicle]);
+      const { data } = await axios.post(`${base_url}/booking/cars/`, formDataToSend, {
+        headers: {
+          Authorization: `Token ${localStorage.getItem("token")}`, // Ensure authentication
+          "Content-Type": "multipart/form-data",
+        },
+      });
+  
+      setVehicles([...vehicles, data]); // Append new car data to state
       setUploadVehicleStatus("success");
+      toast.success("Vehicle uploaded successfully!");
     } catch (error) {
       console.error("Error uploading vehicle:", error.message);
       setUploadVehicleStatus("error");
       setUploadVehicleError("Failed to upload vehicle");
+      toast.error("Failed to upload vehicle.");
     } finally {
       setLoading(false);
     }
   };
+  
 
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
         setLoading(true);
-        const response = await axios.post(
-          `${base_url}/vehicle/rental/getvehicle`,
-          { rentalId: user?._id }
-        );
-
-        setVehicles(response.data?.vehicles);
+        const response = await axios.get(`${base_url}/booking/cars/`, {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`,
+          },
+        });
+        setVehicles(response.data); // Update state with fetched vehicles
       } catch (error) {
         console.error("Error fetching vehicles:", error.message);
       } finally {
         setLoading(false);
       }
     };
-    if (user) {
-      fetchVehicles();
-    }
-  }, [user]);
+  
+    fetchVehicles(); // Fetch data when component mounts
+  }, []);
 
-  const [bookingRequests, setBookingRequests] = useState([]);
-  const [error, setError] = useState(null);
 
-  const fetchBookingRequests = async () => {
-    try {
-      const { data } = await axios.post(`${base_url}/booking/bookings`, {
-        rentalId: user?._id,
-      });
-      const { declineVehicles, pendingVehicles, rentedVehicles } = data;
-      setBookingRequests(pendingVehicles);
-    } catch (error) {
-      setError("Failed to fetch booking requests");
-    }
-  };
+  
+
+  // useEffect(() => {
+  //   const fetchVehicles = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const response = await axios.post(
+  //         `${base_url}/booking/cars/`,
+  //         { rentalId: user?._id }
+  //       );
+
+  //       setVehicles(response.data?.vehicles);
+  //     } catch (error) {
+  //       console.error("Error fetching vehicles:", error.message);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   if (user) {
+  //     fetchVehicles();
+  //   }
+  // }, [user]);
+
 
   useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const { data } = await axios.get(`${base_url}/booking/brands/`); // Endpoint to get brands
+        setBrands(data);
+      } catch (error) {
+        console.error("Error fetching brands:", error.message);
+      }
+    };
+  
+    fetchBrands();
+  }, []);
+
+  const [bookingRequests, setBookingRequests] = useState([]);
+  console.log(bookingRequests, "Booking")
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchBookingRequests = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${base_url}/booking/booking/`, {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`, // ✅ Ensure authentication
+          },
+        });
+
+        console.log("Fetched Bookings:", response.data);
+        const pendingBookings = response.data.filter(booking => booking.status === "P");
+
+        setBookingRequests(pendingBookings);
+      } catch (error) {
+        console.error("Error fetching booking requests:", error.message);
+        setError("Failed to fetch booking requests");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchBookingRequests();
-  }, [user]);
+  }, []);
+
+  // useEffect(() => {
+  //   fetchBookingRequests();
+  // }, [user]);
 
   const determineStatus = (rentalResponse) => {
     if (rentalResponse === "approved") {
@@ -146,56 +212,127 @@ const Uploadvehicle = () => {
     }
   };
 
-  const handleAccept = async (bookingId) => {
+  // const handleAccept = async (bookingId) => {
+  //   try {
+  //     const response = await axios.put(
+  //       `${base_url}/booking/booking/${bookingId}/`
+  //     );
+  //     if (response.status === 200) {
+  //       const updatedBookingRequests = bookingRequests.filter(
+  //         (booking) => booking._id !== bookingId
+  //       );
+  //       setBookingRequests(updatedBookingRequests);
+  //       console.log(bookingRequests, "booking requests");
+  //     }
+  //   } catch (error) {
+  //     setError("Failed to accept booking request");
+  //   }
+  // };
+
+  // const handleDecline = async (bookingId) => {
+  //   try {
+  //     const response = await axios.put(
+  //       `${base_url}/booking/booking/${bookingId}/`
+  //     );
+  //     if (response.status === 200) {
+  //       const updatedBookingRequests = bookingRequests.filter(
+  //         (booking) => booking.id !== bookingId
+  //       );
+  //       setBookingRequests(updatedBookingRequests);
+  //     }
+  //   } catch (error) {
+  //     setError("Failed to decline booking request");
+  //   }
+  // };
+
+  const handleUpdateStatus = async (bookingId, newStatus) => {
     try {
       const response = await axios.put(
-        `${base_url}/booking/updateStatus/${bookingId}/accept`
+        `${base_url}/booking/booking/${bookingId}/`,
+        { status: newStatus }, // Send the updated status
+        {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`, // Ensure authentication
+            "Content-Type": "application/json",
+          },
+        }
       );
+  
       if (response.status === 200) {
-        const updatedBookingRequests = bookingRequests.filter(
-          (booking) => booking._id !== bookingId
+        // ✅ Update state to remove the processed booking
+        setBookingRequests((prevRequests) =>
+          prevRequests.filter((booking) => booking.id !== bookingId)
         );
-        setBookingRequests(updatedBookingRequests);
-        console.log(bookingRequests, "booking requests");
+  
+        // ✅ Show success toast
+        toast.success(
+          `Booking ${newStatus === "A" ? "approved" : "declined"} successfully!`
+        );
       }
     } catch (error) {
-      setError("Failed to accept booking request");
+      console.error("Error updating booking status:", error.message);
+  
+      // ❌ Show error toast
+      toast.error(`Failed to update booking status: ${error.message}`);
+    }
+  };
+  
+  // Call these functions on button click
+  const handleAccept = (bookingId) => handleUpdateStatus(bookingId, "A");
+  const handleDecline = (bookingId) => handleUpdateStatus(bookingId, "C");
+
+  // const handleRemove = async (id) => {
+  //   try {
+  //     const response = await axios.put(`${base_url}/vehicle/status/${id}`);
+  //     if (response.status === 200) {
+  //       console.log("Vehicle status updated to not available");
+  //       const updatedVehicles = vehicles.map((vehicle) => {
+  //         if (vehicle._id === id) {
+  //           return { ...vehicle, status: "disable" };
+  //         }
+  //         return vehicle;
+  //       });
+  //       setVehicles(updatedVehicles);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error updating vehicle status:", error.message);
+  //   }
+  // };
+
+  const handleRemove = async (carId) => {
+    try {
+      const response = await axios.delete(`${base_url}/booking/cars/${carId}`, {
+        headers: {
+          Authorization: `Token ${localStorage.getItem("token")}`, // Ensure authentication
+        },
+      });
+  
+      if (response.status === 204) {
+        // Remove deleted car from the state
+        setVehicles((prevVehicles) => prevVehicles.filter((car) => car.id !== carId));
+        toast.success("Vehicle deleted successfully!");
+      } else {
+        toast.error("Failed to delete the vehicle.");
+      }
+    } catch (error) {
+      console.error("Error deleting vehicle:", error.message);
+      toast.error("An error occurred while deleting the vehicle.");
     }
   };
 
-  const handleDecline = async (bookingId) => {
-    try {
-      const response = await axios.put(
-        `${base_url}/booking/updateStatus/${bookingId}/decline`
-      );
-      if (response.status === 200) {
-        const updatedBookingRequests = bookingRequests.filter(
-          (booking) => booking._id !== bookingId
-        );
-        setBookingRequests(updatedBookingRequests);
-      }
-    } catch (error) {
-      setError("Failed to decline booking request");
+  const getCarType = (type) => {
+    switch (type) {
+      case "M":
+        return "Manual";
+      case "A":
+        return "Auto";
+      case "H":
+        return "Hybrid";
+      default:
+        return "Unknown";
     }
   };
-
-  const handleRemove = async (id) => {
-    try {
-      const response = await axios.put(`${base_url}/vehicle/status/${id}`);
-      if (response.status === 200) {
-        console.log("Vehicle status updated to not available");
-        const updatedVehicles = vehicles.map((vehicle) => {
-          if (vehicle._id === id) {
-            return { ...vehicle, status: "disable" };
-          }
-          return vehicle;
-        });
-        setVehicles(updatedVehicles);
-      }
-    } catch (error) {
-      console.error("Error updating vehicle status:", error.message);
-    }
-  };
+  
 
   
     const toggleStatus = async (vehicleId, currentStatus) => {
@@ -229,7 +366,7 @@ const Uploadvehicle = () => {
 
             <p className="mb-6">Upload information about your vehicle.</p>
             <form>
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <input
                   type="text"
                   name="brand"
@@ -240,6 +377,25 @@ const Uploadvehicle = () => {
                 />
                 {validationErrors.brand && (
                   <div className="text-red-600">{validationErrors.brand}</div>
+                )}
+              </div> */}
+              <div className="mb-4">
+                <select
+                  name="car_brand_id"
+                  value={formData.car_brand_id}
+                  onChange={handleChange}
+                  className="w-full p-2 border rounded-lg"
+                >
+                  <option value="">Select Brand</option>
+                  {brands.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.brand_name}
+                      
+                    </option>
+                  ))}
+                </select>
+                {validationErrors.car_brand_id && (
+                  <div className="text-red-600">{validationErrors.car_brand_id}</div>
                 )}
               </div>
               <div className="mb-4">
@@ -269,18 +425,21 @@ const Uploadvehicle = () => {
                 )}
               </div>
               <div className="mb-4">
-                <input
-                  type="text"
-                  name="manual"
-                  placeholder="Manual/Auto"
-                  value={formData.manual}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-lg"
-                />
-                {validationErrors.manual && (
-                  <div className="text-red-600">{validationErrors.manual}</div>
-                )}
-              </div>
+              <select
+                name="manual"
+                value={formData.manual}
+                onChange={handleChange}
+                className="w-full p-2 border rounded-lg"
+              >
+                <option value="">Select Transmission</option>
+                <option value="M">Manual</option>
+                <option value="A">Automatic</option>
+                <option value="H">Hybrid</option>
+              </select>
+              {validationErrors.manual && (
+                <div className="text-red-600">{validationErrors.manual}</div>
+              )}
+            </div>
               <div className="mb-4">
                 <input
                   type="text"
@@ -379,37 +538,48 @@ const Uploadvehicle = () => {
             vehicles?.length > 0 &&
             vehicles.map((item) => (
               <div
-                key={item?._id}
+                key={item?.id}
                 className="flex items-center bg-red-500 text-white p-4 rounded-lg mb-4"
               >
+              {/* ✅ Ensure correct image display */}
                 <img
-                  src={item?.avatar}
+                  src={item?.image} // Ensure correct image path
                   alt="Car"
                   className="w-32 h-auto rounded-lg mr-4"
                 />
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.carBrand}</h3>
+                    {/* ✅ Display car brand name correctly */}
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">{item?.car_brand?.brand_name}</h3>
+                    </div>
+                  <div className="flex-1">
+                  <h3 className="text-xl font-bold">{item?.car_model}</h3>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.carModel}</h3>
+                  <h3 className="text-xl font-bold">{item?.seats}</h3>
                 </div>
+                {/* ✅ Correct type display */}
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.noOfSeats}</h3>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.transmission}</h3>
+                  <h3 className="text-xl font-bold">
+                    {item?.type === "M"
+                      ? "Manual"
+                      : item?.type === "A"
+                      ? "Auto"
+                      : item?.type === "H"
+                      ? "Hybrid"
+                      : "Unknown"}
+                  </h3>
                 </div>
 
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.address}</h3>
+                  <h3 className="text-xl font-bold">{item?.location}</h3>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item?.licensePlate}</h3>
+                  <h3 className="text-xl font-bold">{item?.licence_plate_no}</h3>
                 </div>
 
                 <div className="text-right">
                   <p className="text-xl font-bold">
-                    Per Day Rs/- {item?.rentPerDay}
+                    Per Day Rs/- {item?.price_per_day}
                   </p>
 
                   {/* <span className="bg-white text-red-500 px-2 py-1 rounded-full mt-2 inline-block">
@@ -419,14 +589,21 @@ const Uploadvehicle = () => {
                         }       
                   </span> */}
 
-                  <span
+                  {/* <span
                     className="bg-white text-red-500 px-2 py-1 rounded-full mt-2 inline-block cursor-pointer"
-                    onClick={() => toggleStatus(item._id, item.status)}>
+                    onClick={() => toggleStatus(item.id, item.status)}>
                     {item.status === "disable" ? "Not Available" : item.status}
-                  </span>
+                  </span> */}
+                   {/* ✅ Show Car Status (Default to "Active" if not available) */}
+                <span
+                  className="bg-white text-red-500 px-2 py-1 rounded-full mt-2 inline-block cursor-pointer"
+                  onClick={() => toggleStatus(item.id, item.status)}
+                >
+                  {item?.status ? item.status : "Active"} {/* ✅ Default to "Active" */}
+                </span>
                 </div>
 
-                <span onClick={() => handleRemove(item._id)}>
+                <span onClick={() => handleRemove(item.id)}>
                   <svg
                     className="w-6 h-6 text-gray-800 dark:text-white"
                     aria-hidden="true"
@@ -462,31 +639,31 @@ const Uploadvehicle = () => {
               <div className="flex-row items-center bg-blue-500 text-white p-4 rounded-lg mb-4">
                 <div key={booking._id} className="flex items-center">
                   <img
-                    src={booking?.vehicleId?.avatar}
+                    src={booking?.car_details?.image}
                     alt={booking?.vehicleId?.model}
                     className="w-32 h-auto rounded-lg mr-4"
                   />
                   <div className="flex-grow">
                     <p className="text-xl font-bold">
-                      {`${booking?.vehicleId?.carBrand} ${booking?.vehicleId?.carModel} ${booking?.vehicleId?.noOfSeats}  ${booking?.vehicleId?.address}  ${booking?.vehicleId?.licensePlate}  ${booking?.vehicleId?.transmission}`}
+                      {`${booking?.car_details?.car_brand?.brand_name} ${booking?.car_details?.car_model} ${booking?.car_details?.seats}  ${booking?.address}  ${booking?.car_details?.licence_plate_no}  ${getCarType(booking?.car_details?.type)}`}
                     </p>
                     <p className="text-xl font-bold">
-                      Per Day Rs/- {booking?.vehicleId?.rentPerDay}
+                      Per Day Rs/- {booking?.car_details?.price_per_day}
                     </p>
                     <p className="text-lg">
-                      Customer Email: {`${booking?.customerId?.email}`}
+                      Customer Email: {`${booking?.email}`}
                     </p>
                   </div>
                   <div className="flex-shrink-0 flex space-x-2">
                     <button
                       className="bg-red-500 px-2 py-1 rounded-full"
-                      onClick={() => handleDecline(booking?._id)}
+                      onClick={() => handleDecline(booking?.id)}
                     >
                       Decline
                     </button>
                     <button
                       className="bg-green-500 px-2 py-1 rounded-full"
-                      onClick={() => handleAccept(booking._id)}
+                      onClick={() => handleAccept(booking?.id)}
                     >
                       Accept
                     </button>

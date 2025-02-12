@@ -26,6 +26,9 @@ import axios from "axios";
 import ForgetPassword from "./Pages/ForgetPassword.jsx";
 import ResetPassword from "./Pages/ResetPassword.jsx";
 
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 function App() {
   const [stripeKey, setStripeApiKey] = React.useState();
   const getStripeaApiKey = async () => {
@@ -44,6 +47,9 @@ function App() {
 
   return (
     <Router>
+            {/* Add ToastContainer globally to show toasts in any component */}
+            <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/Home" element={<Home />} />

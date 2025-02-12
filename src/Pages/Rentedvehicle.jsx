@@ -22,25 +22,32 @@ const Rentedvehicle = () => {
 
   const { user } = useAuth();
   useEffect(() => {
-    const fetchData = async () => {
-      console.log(user, "data");
-
+    const fetchRentedVehicles = async () => {
       try {
-        const response = await axios.post(`${base_url}/booking/bookings`, {
-          customerId: user?._id,
+        setLoading(true);
+        const response = await axios.get(`${base_url}/booking/booking/`, {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`, // ✅ Ensure correct authentication
+          },
         });
 
-        const { rentedVehicles, pendingVehicles } = response.data;
-        setPendingVehicles(pendingVehicles);
-        setRentedVehicles(rentedVehicles);
-        setLoading(false);
+        console.log("Fetched Vehicles:", response.data);
+
+        const rented = response.data.filter((vehicle) => vehicle.status === "A");
+        const pending = response.data.filter((vehicle) => vehicle.status === "P");
+
+        setRentedVehicles(rented);
+        setPendingVehicles(pending);
       } catch (error) {
+        console.error("Error fetching rented vehicles:", error.message);
         setError("Failed to fetch data");
+      } finally {
         setLoading(false);
       }
     };
+
     if (user) {
-      fetchData();
+      fetchRentedVehicles();
     }
   }, [user]);
 
@@ -59,24 +66,34 @@ const Rentedvehicle = () => {
                 className="flex items-center bg-lime-400 text-black p-4 rounded-lg mb-4"
               >
                 <img
-                  src={vehicle.vehicleId.avatar}
-                  alt={vehicle.vehicleId.model}
+                  src={vehicle.car_details?.image || ""}
+                  alt={vehicle.car_details.model_name}
                   className="w-32 h-auto rounded-lg mr-4"
                 />
                 <div className="flex-1 font-bold text-xl">
                   <p>
-                    {vehicle.vehicleId.carBrand} {vehicle.vehicleId.carModel}{" "}
+                    {/* {vehicle.vehicleId.carBrand} {vehicle.vehicleId.carModel}{" "}
                     {vehicle.vehicleId.noOfSeats} {vehicle.vehicleId.address}{" "}
                     {vehicle.vehicleId.licensePlate}{" "}
-                    {vehicle.vehicleId.transmission}
+                    {vehicle.vehicleId.transmission} */}
+                    {vehicle.car_details.car_brand.brand_name} {vehicle.car_details.car_model}{" "}
+                    {vehicle.car_details.seats}, {vehicle.car_details.licence_plate_no}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-xl font-bold">
-                  Per Day Rs/- {vehicle.vehicleId.rentPerDay}
+                  Per Day Rs/- {vehicle?.car_details.price_per_day}
                   </p>
                   <span className="bg-white text-black px-2 py-1 rounded-full mt-2 inline-block">
-                    {vehicle.status}
+                  <span className="bg-white text-black px-2 py-1 rounded-full mt-2 inline-block">
+                  {vehicle.status === "P"
+                    ? "Pending"
+                    : vehicle.status === "A"
+                    ? "Approved"
+                    : vehicle.status === "C"
+                    ? "Cancelled"
+                    : "Unknown"}
+                </span>
                   </span>
                 </div>
               </div>
@@ -93,15 +110,18 @@ const Rentedvehicle = () => {
                     className="flex items-center bg-blue-500 text-white p-4 rounded-lg mb-4"
                   >
                     <img
-                      src={vehicle?.vehicleId?.avatar}
+                      src={vehicle?.car_details.image || ""}
                       alt={vehicle?.vehicleId?.model}
                       className="w-32 h-auto rounded-lg mr-4"
                     />
                     <div className="flex ">
-                      <p className="text-xl font-bold">{`${vehicle?.vehicleId?.carBrand} ${vehicle?.vehicleId?.carModel} ${vehicle?.vehicleId?.noOfSeats}  ${vehicle?.vehicleId?.address}  ${vehicle?.vehicleId?.licensePlate}  ${vehicle?.vehicleId?.transmission}`}</p>
+                      <p className="text-xl font-bold">
+                      {vehicle.car_details.car_brand.brand_name} {vehicle.car_details.car_model}{" "}
+                      {vehicle.car_details.seats} seats, {vehicle.car_details.licence_plate_no}
+                        </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xl font-bold ">Per Day Rs/- {vehicle?.vehicleId?.rentPerDay}</p>
+                      <p className="text-xl font-bold ">Per Day Rs/- {vehicle?.car_details.price_per_day}</p>
                       {vehicle.status === "request" ? (
                         <span className="bg-gray-300 px-2 py-1 rounded-full mt-2 inline-block cursor-not-allowed">
                           PAYMENT

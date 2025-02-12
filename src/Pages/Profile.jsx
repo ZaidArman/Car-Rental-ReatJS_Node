@@ -1,23 +1,41 @@
-import React, { useContext, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import axios from "axios";
-import { Link } from "react-router-dom";
 import { base_url } from "../config/config";
-import { AuthContext, useAuth } from "../context/auth/auth.provider";
+import { useAuth } from "../context/auth/auth.provider";
+import { toast } from "react-toastify";
 
 const Profile = () => {
-  const { user, setUser } = useAuth();
+  const { user, setUser, getProfile } = useAuth();
 
   const [formData, setFormData] = useState({
-    firstName: user?.firstName,
-    lastName: user?.lastName,
-    contact: user?.contact,
-    emailAddress: user?.email,
-    password: "",
+    first_name: user?.first_name || "",
+    last_name: user?.last_name || "",
+    phone_number: user?.phone_number || "",
+    email: user?.email || "", // Display email but prevent editing
+    address: user?.address || "",
   });
 
-  const [errors, setErrors] = useState({});
+  // Fetch user data on component mount (if user data is missing)
+  useEffect(() => {
+    if (!user) {
+      getProfile();
+    }
+  }, []);
+
+  // Sync formData with user data when user state changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
+        phone_number: user.phone_number || "",
+        email: user.email || "",
+        address: user.address || "",
+      });
+    }
+  }, [user]);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -26,35 +44,31 @@ const Profile = () => {
     });
   };
 
-  const validateForm = () => {
-    let formErrors = {};
-    if (!formData.firstName) formErrors.firstName = "First name is required";
-    if (!formData.lastName) formErrors.lastName = "Last name is required";
-    if (!formData.contact) formErrors.contact = "Contact number is required";
-    if (!formData.emailAddress) formErrors.emailAddress = "Email address is required";
-    setErrors(formErrors);
-    return Object.keys(formErrors).length === 0;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
     try {
       const res = await axios.put(
-        `${base_url}/user/editProfile/${user._id}`,
+        `${base_url}/accounts/users/profile/`,
         {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          contact: formData.contact,
-          emailAddress: formData.emailAddress,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          phone_number: formData.phone_number,
+          address: formData.address, // Allow address update
+        },
+        {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`,
+          },
         }
       );
-      console.log(res.data); // Handle success response as needed
-      setUser(res?.data?.rest);
-      alert("Profile updated successfully");
+
+      console.log("Profile Updated:", res.data);
+      setUser(res.data); // Update global user state
+      toast.success("Profile updatede successfully! 🎉", { position: "top-right" });
+
+      // alert("Profile updatede successfully");
     } catch (error) {
       console.error("Error updating profile:", error);
-      // Handle error response here
     }
   };
 
@@ -69,63 +83,51 @@ const Profile = () => {
               <div className="mb-4">
                 <input
                   type="text"
-                  name="firstName"
-                  value={formData.firstName}
+                  name="first_name"
+                  value={formData.first_name}
                   onChange={handleInputChange}
                   placeholder="First Name"
                   className="w-full p-2 border rounded-lg"
                 />
-                {errors.firstName && (
-                  <p className="text-red-500">{errors.firstName}</p>
-                )}
               </div>
               <div className="mb-4">
                 <input
                   type="text"
-                  name="lastName"
-                  value={formData.lastName}
+                  name="last_name"
+                  value={formData.last_name}
                   onChange={handleInputChange}
                   placeholder="Last Name"
                   className="w-full p-2 border rounded-lg"
                 />
-                {errors.lastName && (
-                  <p className="text-red-500">{errors.lastName}</p>
-                )}
               </div>
               <div className="mb-4">
                 <input
                   type="text"
-                  name="contact"
-                  value={formData.contact}
+                  name="phone_number"
+                  value={formData.phone_number}
                   onChange={handleInputChange}
                   placeholder="Contact No"
                   className="w-full p-2 border rounded-lg"
                 />
-                {errors.contact && (
-                  <p className="text-red-500">{errors.contact}</p>
-                )}
               </div>
               <div className="mb-4">
                 <input
                   type="text"
-                  name="emailAddress"
-                  value={formData.emailAddress}
+                  name="address"
+                  value={formData.address}
                   onChange={handleInputChange}
-                  placeholder="Email Address"
+                  placeholder="Address"
                   className="w-full p-2 border rounded-lg"
                 />
-                {errors.emailAddress && (
-                  <p className="text-red-500">{errors.emailAddress}</p>
-                )}
               </div>
+              {/* Email is disabled */}
               <div className="mb-4">
                 <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Password"
-                  className="w-full p-2 border rounded-lg"
+                  type="text"
+                  name="email"
+                  value={formData.email}
+                  disabled
+                  className="w-full p-2 border rounded-lg bg-gray-200 cursor-not-allowed"
                 />
               </div>
               <button
@@ -134,15 +136,14 @@ const Profile = () => {
               >
                 Update Profile
               </button>
-              <br />
             </form>
           </div>
           <div className="flex-1 flex justify-center">
             <div className="bg-red-500 rounded-full w-32 h-32 flex items-center justify-center">
               <img
-                src={user?.avatar}
+                src={`${base_url}${user?.image}`}
                 className="w-full h-full rounded-full"
-                alt={user?.firstName}
+                alt={user?.first_name}
               />
             </div>
           </div>

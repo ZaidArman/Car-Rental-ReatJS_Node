@@ -1,24 +1,29 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AuthContext, useAuth } from "../context/auth/auth.provider";
-import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const handleEmailChange = (e) => setEmail(e.target.value);
-  const handlePasswordChange = (e) => setPassword(e.target.value);
+  const [redirectPath, setRedirectPath] = useState(null); // Store redirect path
   const { login, setRole } = useAuth();
-  const navigation = useNavigate();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    console.log(token, "TOKEN VALUE");
     if (token) {
-      navigation("/Home");
+      navigate("/Home");
     }
-  }, []);
+  }, [navigate]);
+
+  // 🔹 Use useEffect to trigger navigation when redirectPath changes
+  useEffect(() => {
+    if (redirectPath) {
+      navigate(redirectPath);
+    }
+  }, [redirectPath, navigate]);
 
   const handleLogin = async () => {
     const data = {
@@ -27,31 +32,26 @@ const Login = () => {
     };
 
     const onSuccess = (data) => {
-      if(data?.isRental) {
-      if(data?.isCustomer) {
-        localStorage.setItem("role", "both")
-        setRole("both")
-      } else {
-        localStorage.setItem("role", "rental")
-        setRole("rental")
-      }
-        navigation("/Rental");
-        return ;
-      } 
-      else if (data?.isCustomer ) {
-        localStorage.setItem("role", "customer")
-        navigation("/Customer");
-        setRole("customer")
+      toast.success("Login successful! 🎉 Redirecting...", { position: "top-right" });
+
+      if (data?.role === "Rental") {
+        setRole("rental");
+        localStorage.setItem("role", "rental");
+        setRedirectPath("/Rental");
+      } else if (data?.role === "Customer") {
+        setRole("customer");
+        localStorage.setItem("role", "customer");
+        setRedirectPath("/Customer");
       }
     };
 
     const onFailure = (err) => {
-      setError(err?.response?.data?.message || "an error occured");
+      toast.error(err?.response?.data?.message || "Login failed! Please check your credentials.", { position: "top-right" });
+      setError(err?.response?.data?.message || "An error occurred.");
     };
 
     await login(data, onSuccess, onFailure);
   };
-
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-200">
@@ -64,14 +64,14 @@ const Login = () => {
           type="email"
           placeholder="Enter Email Address"
           value={email}
-          onChange={handleEmailChange}
+          onChange={(e) => setEmail(e.target.value)}
           className="w-full p-3 mb-4 border rounded-lg"
         />
         <input
           type="password"
           placeholder="Password"
           value={password}
-          onChange={handlePasswordChange}
+          onChange={(e) => setPassword(e.target.value)}
           className="w-full p-3 mb-4 border rounded-lg"
         />
         {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -88,9 +88,8 @@ const Login = () => {
           </Link>
         </div>
         <div className="text-center text-gray-600">
-          
           <Link to="/password/forget" className="text-black">
-          forgot password? 
+            Forgot password?
           </Link>
         </div>
       </div>
