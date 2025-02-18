@@ -33,9 +33,9 @@ const Customer = () => {
       try {
         setLoading(true);
         const response = await axios.get(`${base_url}/booking/cars/`); // ✅ Use GET request
-        const activeVehicles = response.data?.filter(car => car.status === "active"); // ✅ Filter only active cars
-        setVehicles(activeVehicles);
-        // setVehicles(response.data);
+        // const activeVehicles = response.data?.filter(car => car.status === "active"); // ✅ Filter only active cars
+        // setVehicles(activeVehicles);
+        setVehicles(response.data);
       } catch (error) {
         console.error("Error fetching vehicles:", error.message);
       } finally {

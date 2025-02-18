@@ -72,7 +72,7 @@ function App() {
           {/* <Route path="/Profile" element={<Profile />} /> */}
           {stripeKey && (
             <Route
-              path="/payment/:bookingId/:amount"
+              path="/payment/payment/:bookingId"
               element={
                 <Elements stripe={loadStripe(stripeKey)}>
                   <Payment />
