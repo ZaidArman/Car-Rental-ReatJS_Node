@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { base_url } from "../config/config";
 import { AuthContext, useAuth } from "../context/auth/auth.provider";
+import { toast } from "react-toastify";
 
 const Rentedvehicle = () => {
   const Links = [
@@ -33,11 +34,14 @@ const Rentedvehicle = () => {
 
         console.log("Fetched Vehicles:", response.data);
 
-        const rented = response.data.filter((vehicle) => vehicle.status === "A");
-        const pending = response.data.filter((vehicle) => vehicle.status === "P");
+        const rented = response.data.filter((vehicle) => vehicle.status === "S");
+        const pending = response.data.filter((vehicle) => vehicle.status === "P" || vehicle.status === "A");
+        
 
         setRentedVehicles(rented);
         setPendingVehicles(pending);
+       
+
       } catch (error) {
         console.error("Error fetching rented vehicles:", error.message);
         setError("Failed to fetch data");
@@ -50,6 +54,27 @@ const Rentedvehicle = () => {
       fetchRentedVehicles();
     }
   }, [user]);
+
+
+  const handlePayment = async (bookingId) => {
+    try {
+      const response = await axios.post(
+        `${base_url}/payment/create-car-checkout-session/`,
+        { booking_id: bookingId },  // Send booking_id in the request body
+        {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",  // Ensure JSON request
+          },
+        }
+      );
+      window.location.href = response.data.url; // Redirect to Stripe checkout
+    } catch (error) {
+      console.error("Error creating Stripe checkout session:", error);
+      toast.error("Payment failed. Please try again.");
+    }
+  };
+  
 
   return (
     <div>
@@ -88,6 +113,8 @@ const Rentedvehicle = () => {
                   <span className="bg-white text-black px-2 py-1 rounded-full mt-2 inline-block">
                   {vehicle.status === "P"
                     ? "Pending"
+                    : vehicle.status === "S"
+                    ? "Paid"
                     : vehicle.status === "A"
                     ? "Approved"
                     : vehicle.status === "C"
@@ -97,6 +124,7 @@ const Rentedvehicle = () => {
                   </span>
                 </div>
               </div>
+              
             ))}
 
           <div className="flex items-center justify-center min-h-screen bg-gray-200 p-4">
@@ -122,16 +150,18 @@ const Rentedvehicle = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-bold ">Per Day Rs/- {vehicle?.car_details.price_per_day}</p>
-                      {vehicle.status === "request" ? (
+                      {vehicle.status != "A" ? (
                         <span className="bg-gray-300 px-2 py-1 rounded-full mt-2 inline-block cursor-not-allowed">
                           PAYMENT
                         </span>
                       ) : (
-                        <Link to={`/payment/${vehicle._id}/${vehicle.totalRent}`}>
-                          <span className="bg-green-500 px-2 py-1 rounded-full mt-2 inline-block">
+                        <button
+                            onClick={() => handlePayment(vehicle.id)}
+                            className="bg-green-500 px-2 py-1 rounded-full mt-2 inline-block"
+                          >
                             PAYMENT
-                          </span>
-                        </Link>
+                          </button>
+
                       )}
                     </div>
                   </div>

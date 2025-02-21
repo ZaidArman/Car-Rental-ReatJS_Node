@@ -71,8 +71,8 @@ const Showroom = () => {
       vehicle.price_per_day >= priceRange[0] && vehicle.price_per_day <= priceRange[1];
   
     const matchesBrand = selectedBrand === "" || vehicle.car_brand?.brand_name === selectedBrand;
-  
-    return matchesSearch && withinPriceRange && matchesBrand;
+    const matchesStatus = selectedStatus === "" || vehicle.status === selectedStatus;
+    return matchesSearch && withinPriceRange && matchesBrand && matchesStatus;
   });
 
   const carBrandSet = new Set();
