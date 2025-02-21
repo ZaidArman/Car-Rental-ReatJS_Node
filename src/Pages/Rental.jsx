@@ -191,11 +191,17 @@ const Rental = () => {
     const fetchVehicles = async () => {
       try {
         setLoading(true);
-        const response = await axios.post(
-          `${base_url}/vehicle/rental/getvehicle`,
-          { "all": "all" }
-        );
-        setVehicles(response.data?.vehicles);
+        const response = await axios.get(`${base_url}/booking/cars/`, {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`, // ✅ Ensure correct authentication
+          },
+        });
+
+        // const response = await axios.post(
+        //   `${base_url}/vehicle/rental/getvehicle`,
+        //   { "all": "all" }
+        // );
+        setVehicles(response.data);
       } catch (error) {
         console.error("Error fetching vehicles:", error.message);
       } finally {
@@ -205,15 +211,32 @@ const Rental = () => {
     fetchVehicles();
   }, []);
 
-  const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesSearch = vehicle.carBrand.toLowerCase().includes(searchText.toLowerCase()) ||
-                         vehicle.carModel.toLowerCase().includes(searchText.toLowerCase()) ||
-                         vehicle.address.toLowerCase().includes(searchText.toLowerCase());
-    const withinPriceRange = vehicle.rentPerDay >= priceRange[0] && vehicle.rentPerDay <= priceRange[1];
-    const matchesBrand = selectedBrand === "" || vehicle.carBrand === selectedBrand;
+  const filteredVehicles = vehicles.filter((vehicle) => {
+    const matchesSearch =
+      vehicle.car_brand?.brand_name.toLowerCase().includes(searchText.toLowerCase()) ||
+      vehicle.car_model.toLowerCase().includes(searchText.toLowerCase()) ||
+      vehicle.location.toLowerCase().includes(searchText.toLowerCase());
+  
+    const withinPriceRange =
+      vehicle.price_per_day >= priceRange[0] && vehicle.price_per_day <= priceRange[1];
+  
+    const matchesBrand = selectedBrand === "" || vehicle.car_brand?.brand_name === selectedBrand;
     const matchesStatus = statusFilter === "" || vehicle.status.toLowerCase() === statusFilter.toLowerCase();
+    // const matchesStatus = selectedStatus === "" || vehicle.status === selectedStatus;
+  
     return matchesSearch && withinPriceRange && matchesBrand && matchesStatus;
   });
+
+
+  // const filteredVehicles = vehicles.filter(vehicle => {
+  //   const matchesSearch = vehicle.carBrand.toLowerCase().includes(searchText.toLowerCase()) ||
+  //                        vehicle.carModel.toLowerCase().includes(searchText.toLowerCase()) ||
+  //                        vehicle.address.toLowerCase().includes(searchText.toLowerCase());
+  //   const withinPriceRange = vehicle.rentPerDay >= priceRange[0] && vehicle.rentPerDay <= priceRange[1];
+  //   const matchesBrand = selectedBrand === "" || vehicle.carBrand === selectedBrand;
+  //   const matchesStatus = statusFilter === "" || vehicle.status.toLowerCase() === statusFilter.toLowerCase();
+  //   return matchesSearch && withinPriceRange && matchesBrand && matchesStatus;
+  // });
 
   const carBrandSet = new Set();
   vehicles.forEach((item) => {
@@ -269,35 +292,36 @@ const Rental = () => {
             filteredVehicles.map((item) => (
               <div key={item._id} className="flex items-center bg-red-500 text-white p-4 rounded-lg mb-4">
                 <img
-                  src={item.avatar}
+                  src={item?.image}
                   alt="Car"
                   className="w-32 h-auto rounded-lg mr-4"
                 />
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item.carBrand}</h3>
+                  <h3 className="text-xl font-bold">{item?.car_brand?.brand_name}</h3>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item.carModel}</h3>
+                  <h3 className="text-xl font-bold">{item.car_model}</h3>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item.noOfSeats}</h3>
+                  <h3 className="text-xl font-bold">{item.seats}</h3>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item.transmission}</h3>
-                </div>
-
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item.address}</h3>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold">{item.licensePlate}</h3>
+                {item.type === "M" ? "Manual" : item.type === "A" ? "Auto" : item.type === "H" ? "Hybrid" : "Unknown"}
+                  {/* <h3 className="text-xl font-bold">{item.transmission}</h3> */}
                 </div>
 
                 <div className="flex-1">
+                  <h3 className="text-xl font-bold">{item.location}</h3>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold">{item.licence_plate_no}</h3>
+                </div>
+
+                {/* <div className="flex-1">
                   <h3 className="text-xl font-bold">{item.status}</h3>
-                </div>
+                </div> */}
                 <div className="text-right">
-                  <p className="text-xl font-bold">{item.rentPerDay}</p>
+                  <p className="text-xl font-bold">{item.price_per_day}</p>
                   <p>per day</p>
                   <span className="bg-white text-red-500 px-2 py-1 rounded-full mt-2 inline-block">
                     {item.status}

@@ -34,11 +34,14 @@ const Rentedvehicle = () => {
 
         console.log("Fetched Vehicles:", response.data);
 
-        const rented = response.data.filter((vehicle) => vehicle.status === "A");
-        const pending = response.data.filter((vehicle) => vehicle.status === "P");
+        const rented = response.data.filter((vehicle) => vehicle.status === "S");
+        const pending = response.data.filter((vehicle) => vehicle.status === "P" || vehicle.status === "A");
+        
 
         setRentedVehicles(rented);
         setPendingVehicles(pending);
+       
+
       } catch (error) {
         console.error("Error fetching rented vehicles:", error.message);
         setError("Failed to fetch data");
@@ -147,7 +150,7 @@ const Rentedvehicle = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-xl font-bold ">Per Day Rs/- {vehicle?.car_details.price_per_day}</p>
-                      {vehicle.status != "P" ? (
+                      {vehicle.status != "A" ? (
                         <span className="bg-gray-300 px-2 py-1 rounded-full mt-2 inline-block cursor-not-allowed">
                           PAYMENT
                         </span>
