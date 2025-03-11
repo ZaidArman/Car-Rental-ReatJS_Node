@@ -74,6 +74,39 @@ const Rentedvehicle = () => {
       toast.error("Payment failed. Please try again.");
     }
   };
+
+
+  const handleCancelBooking = async (bookingId) => {
+    try {
+      const response = await axios.post(
+        `${base_url}/booking/cancel/booking/`, 
+        { booking_id: bookingId }, // Send booking ID in the request body
+        {
+          headers: {
+            Authorization: `Token ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  
+      toast.success(response.data.message);
+
+
+        // Refresh the list after cancellation
+      setPendingVehicles((prev) =>
+          prev.filter((vehicle) => vehicle.id !== bookingId)
+        );
+      
+      // Refresh the list after cancellation
+      setRentedVehicles((prev) =>
+        prev.filter((vehicle) => vehicle.id !== bookingId)
+      );
+  
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      toast.error("Failed to cancel booking. Please try again.");
+    }
+  };
   
 
   return (
@@ -151,16 +184,27 @@ const Rentedvehicle = () => {
                     <div className="text-right">
                       <p className="text-xl font-bold ">Per Day Rs/- {vehicle?.car_details.price_per_day}</p>
                       {vehicle.status != "A" ? (
+                         <>
                         <span className="bg-gray-300 px-2 py-1 rounded-full mt-2 inline-block cursor-not-allowed">
                           PAYMENT
                         </span>
+
+                    <button  onClick={() => handleCancelBooking(vehicle.id)}
+                    className="bg-red-500 px-2 py-1 rounded-full mt-2 inline-block ml-2">
+                    CANCEL
+                    </button>
+                        </>
                       ) : (
+                        <>
                         <button
                             onClick={() => handlePayment(vehicle.id)}
                             className="bg-green-500 px-2 py-1 rounded-full mt-2 inline-block"
                           >
                             PAYMENT
                           </button>
+
+
+                        </>
 
                       )}
                     </div>
