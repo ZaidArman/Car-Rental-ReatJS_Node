@@ -9,10 +9,10 @@ const Footer = () => {
             READY FOR THE <br /> NEW <span className="text-red-500">  ERA?</span>
           </h2>
           <p className='ml-2'> Contact US</p>
-          <p className='ml-2'>manas4808294@gmail.com</p>
+          <p className='ml-2'>ahmaddalvi8866@gmail.com</p>
         </div>
         <div className="text-center md:text-right">
-          <p>@2024 Car Rental Hub All Rights Reserved</p>
+          <p>@2024 Rent a Ride All Rights Reserved</p>
         </div>
         <div className="flex space-x-4">
           <a href="#" className="text-white hover:text-gray-400">

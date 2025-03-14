@@ -54,7 +54,7 @@ function TermsAndConditions() {
           <div>
             <h2 className="font-semibold">Contact Us:</h2>
             <p>
-              For questions or concerns, contact us at manas4808294@gmail.com.
+              For questions or concerns, contact us atahmaddalvi8866@gmail.com.
             </p>
           </div>
         </div>

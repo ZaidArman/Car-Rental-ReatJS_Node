@@ -59,7 +59,7 @@ const Profile = () => {
               HOW DOES IT WORK?
             </h2>
             <p className="text-gray-700 text-xl font-bold">
-              Car rental hub website serves as a centralized platform for
+              Rent a Ride website serves as a centralized platform for
               customers to easily browse and book rental vehicles from various
               providers. Also any user can upload their vehicle on platform to
               put them on rent. It offers a user-friendly interface with search

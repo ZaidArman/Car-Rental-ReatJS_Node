@@ -218,7 +218,7 @@ const forgetPassword = async (req, res) => {
     //send Email function with an object object
     await sendEmail({
       email: user.email,
-      subject: "Car Rental Hub Password Recovery.",
+      subject: "Rent a Ride Password Recovery.",
       message,
     });
     console.log("user's mail")
